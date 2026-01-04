@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>BrushManager Pro - V2.7.0</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4361ee">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1048/1048953.png">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #f72585; --bg: #f0f2f5; --whatsapp: #25D366; --warning: #ff9f43; --gray: #888; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; overflow-x: hidden; }
+        .card { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); margin-bottom: 15px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .stat-card { background: #ffffff; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .stat-card h4 { margin: 0; font-size: 12px; color: #777; font-weight: 600; }
+        .stat-card p { margin: 8px 0 0; font-size: 20px; font-weight: 800; color: var(--primary); }
+        
+        .whatsapp-float { position: fixed; width: 50px; height: 50px; bottom: 80px; left: 20px; background-color: var(--whatsapp); color: #FFF; border-radius: 50px; text-align: center; font-size: 24px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2); z-index: 1000; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+        .chat-toggle { position: fixed; width: 50px; height: 50px; bottom: 20px; left: 20px; background-color: var(--primary); color: #FFF; border-radius: 50px; text-align: center; font-size: 24px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2); z-index: 1000; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; }
+        .unread-badge { position: absolute; top: -10px; right: -5px; background: red; color: white; border-radius: 12px; min-width: 20px; height: 20px; font-size: 11px; display: none; align-items: center; justify-content: center; padding: 0 6px; white-space: nowrap; font-weight: bold; border: 2px solid white; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 600px; background: white; }
+        th { background: #343a40; color: white; padding: 12px; font-size: 13px; border: 1px solid #444; }
+        td { padding: 5px; border: 1px solid #ddd; text-align: center; }
+        input, select { width: 92%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; text-align: center; font-size: 14px; font-family: inherit; }
+        
+        .btn { padding: 10px 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; color: white; margin: 5px; font-size: 13px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-json { background: #6c757d; }
+
+        #msgMenu { position: fixed; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: none; z-index: 2000; min-width: 120px; overflow: hidden; }
+        .menu-item { padding: 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+
+        #chatWindow { position: fixed; bottom: 85px; left: 20px; width: 320px; height: 450px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1001; overflow: hidden; }
+        #chatHeader { background: var(--primary); color: white; padding: 10px 15px; font-weight: bold; }
+        #chatMessages { flex: 1; padding: 15px; overflow-y: auto; background: #f4f7f6; display: flex; flex-direction: column; gap: 8px; }
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 13px; position: relative; word-wrap: break-word; cursor: context-menu; }
+        .msg-me { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+        .msg-them { align-self: flex-start; background: #fff; color: #333; border-bottom-left-radius: 4px; }
+        .msg img { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; }
+
+        .footer-credit { text-align: center; margin-top: 20px; font-size: 12px; color: var(--gray); font-weight: 600; padding: 10px; }
+
+        @media print { .noPrint, .whatsapp-float, .chat-toggle, #chatWindow, .footer-credit { display: none !important; } }
+    </style>
+</head>
+<body onclick="closeMsgMenu()">
+
+<audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
+
+<a href="https://wa.me/201288761131" class="whatsapp-float noPrint" target="_blank">📲</a>
+<button class="chat-toggle noPrint" onclick="toggleChat()">
+    💬 <span id="unreadBadge" class="unread-badge">0</span>
+</button>
+
+<div id="msgMenu">
+    <div class="menu-item" onclick="editMsgUI()">✏️ تحرير</div>
+    <div class="menu-item" style="color:red;" onclick="deleteMsgUI()">🗑️ حذف للكل</div>
+</div>
+
+<div id="chatWindow">
+    <div id="chatHeader">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>المحادثة المباشرة</span>
+            <span onclick="toggleChat()" style="cursor:pointer; font-size: 20px;">✕</span>
+        </div>
+        <div id="chatRecipientArea"></div>
+    </div>
+    <div id="chatMessages"></div>
+    <div id="chatInputArea" style="padding:10px; display:flex; gap:5px; align-items:center; border-top:1px solid #eee;">
+        <label style="cursor:pointer; font-size:20px; padding:0 5px;">
+            📎 <input type="file" id="chatFileInput" hidden accept="image/*" onchange="sendFile(this)">
+        </label>
+        <input type="text" id="chatMsgInput" placeholder="اكتب..." style="flex:1;">
+        <button onclick="sendMsg()" class="btn btn-primary" style="margin:0;">ارسل</button>
+    </div>
+</div>
+
+<div id="loginBox" class="card" style="max-width:400px; margin:50px auto; text-align:center;">
+    <h2 style="color:var(--primary);">🔐 BrushManager Pro</h2>
+    <input id="username" type="text" placeholder="اسم المستخدم" style="margin-bottom:10px;"><br>
+    <input id="pass" type="password" placeholder="الباسورد" style="margin-bottom:15px;"><br>
+    <button onclick="login('user')" class="btn btn-primary" style="width:100%">دخول</button>
+    <hr>
+    <button onclick="document.getElementById('adminForm').style.display='block'" style="background:none; border:none; color:var(--primary); font-size:12px;">دخول السوبر أدمن 🛠</button>
+    <div id="adminForm" style="display:none; margin-top:10px;">
+        <input id="adminUser" type="text" placeholder="المسؤول"><br>
+        <input id="adminPass" type="password" placeholder="الكود" style="margin-top:5px;"><br>
+        <button onclick="login('admin')" class="btn btn-danger" style="width:100%; margin-top:10px;">دخول المسؤول</button>
+    </div>
+    <div class="footer-credit" style="margin-top:15px;">برمجة أ. محمود بدير - إصدار V2.7.0</div>
+</div>
+
+<div id="app" style="display:none;">
+    <div class="card noPrint" style="display:flex; justify-content:space-between; align-items:center;">
+        <div><span id="connDot" style="width:10px; height:10px; border-radius:50%; display:inline-block;"></span> <span id="connText" style="font-size:11px;"></span></div>
+        <div style="font-weight:bold;">👤 <span id="welcomeUser"></span></div>
+        <button onclick="location.reload()" class="btn btn-danger" style="padding:5px 10px;">خروج</button>
+    </div>
+
+    <div id="adminPanel" class="card noPrint" style="display:none; border:2px solid var(--danger);">
+        <h4 style="color:var(--danger); margin-top:0;">🛠 إدارة النظام (للأدمن فقط)</h4>
+        <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <input id="newWorkerName" type="text" placeholder="اسم الموظف الجديد">
+            <input id="newWorkerPass" type="text" placeholder="الباسورد">
+            <button onclick="addNewWorker()" class="btn btn-success">إضافة</button>
+        </div>
+        <div id="usersList"></div>
+        <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
+            <p style="font-size:12px; font-weight:bold;">النسخ الاحتياطي الشامل (JSON):</p>
+            <button onclick="exportJSON('full')" class="btn btn-json">📤 تصدير كل البيانات</button>
+            <button onclick="document.getElementById('importFileFull').click()" class="btn btn-json">📥 استيراد كل البيانات</button>
+            <input type="file" id="importFileFull" hidden onchange="importJSON(this, 'full')">
+        </div>
+    </div>
+
+    <div class="card noPrint" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div style="flex:1;"><label style="font-size:11px;">المستخدم</label><select id="userSelect" onchange="switchContext()"></select></div>
+        <div style="flex:1;"><label style="font-size:11px;">التاريخ</label><select id="daySelect" onchange="switchContext()"></select></div>
+        <div style="flex:1;"><label style="font-size:11px;">الوردية</label>
+            <select id="shiftSelect" onchange="switchContext()">
+                <option value="وردية_1">الأولى</option><option value="وردية_2">الثانية</option><option value="وردية_3">الثالثة</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="printArea">
+        <div class="stats-grid">
+            <div class="stat-card"><h4>إجمالي القطع</h4><p id="sumTotal">0</p></div>
+            <div class="stat-card"><h4>إجمالي المقاسات</h4><p id="sumSizes">0</p></div>
+        </div>
+        <div class="card" style="overflow-x:auto;">
+            <table id="mainTable">
+                <thead><tr><th>الفرشة</th><th>الطبقات</th><th>المقاس</th><th>المجموع</th><th>الخط</th><th>ملاحظات</th><th class="noPrint">✖</th></tr></thead>
+                <tbody id="tbody" oninput="liveUpdate()" onkeyup="liveUpdate()" onclick="liveUpdate()"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card noPrint" style="text-align:center;">
+        <button onclick="addRow()" class="btn btn-success">➕ إضافة سطر</button>
+        <button onclick="window.print()" class="btn btn-danger">📄 PDF</button>
+        <hr>
+        <p style="font-size:11px;">نسخة احتياطية لبياناتي (JSON):</p>
+        <button onclick="exportJSON('user')" class="btn btn-json" style="padding:5px 10px;">📤 تصدير شغلي</button>
+        <button onclick="document.getElementById('importFileUser').click()" class="btn btn-json" style="padding:5px 10px;">📥 استيراد شغلي</button>
+        <input type="file" id="importFileUser" hidden onchange="importJSON(this, 'user')">
+    </div>
+
+    <div class="footer-credit noPrint">برمجة أ. محمود بدير - إصدار V2.7.0</div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyDDhfiJkDvafZQB57DA9jsF7R3iF8jokQI",
+    authDomain: "brushmanager-98d94.firebaseapp.com",
+    databaseURL: "https://brushmanager-98d94-default-rtdb.firebaseio.com",
+    projectId: "brushmanager-98d94",
+    appId: "1:319953455236:web:e7e93bf6073da63f1b1ad1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let users = {"admin":{"pass":"MTIz","role":"super"}};
+let currentUser, activeUser, activeDay, activeShift;
+let chatRecipient = "admin";
+let unreadCount = 0, isChatOpen = false;
+let lastSenderName = "";
+let selectedMsgId = null, selectedMsgContent = "";
+let sessionStartTime = Date.now();
+
+function login(type) {
+    let u = (type === 'admin' ? document.getElementById('adminUser') : document.getElementById('username')).value.trim();
+    let p = (type === 'admin' ? document.getElementById('adminPass') : document.getElementById('pass')).value;
+    db.ref('users').once('value', snap => {
+        let all = snap.val() || users;
+        if (all[u] && all[u].pass === btoa(p)) { 
+            users = all; 
+            sessionStartTime = Date.now();
+            startSession(u); 
+        }
+        else alert("خطأ في البيانات");
+    });
+}
+
+function startSession(u) {
+    currentUser = activeUser = u;
+    activeDay = new Date().toISOString().split('T')[0];
+    activeShift = "وردية_1";
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('welcomeUser').innerText = u;
+    initApp(); loadContent(); listenForMessages(); setupChatUI();
+}
+
+document.getElementById('chatMsgInput').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') sendMsg();
+});
+
+// الدالة الأساسية للتنبيه الصوتي الذكي
+function listenForMessages() {
+    const checkAndNotify = (m, msgId, senderLabel) => {
+        // مفتاح فريد لكل مستخدم لتخزين معرف آخر رسالة سمعها
+        const storageKey = 'lastNotifiedId_' + currentUser;
+        let lastNotifiedId = localStorage.getItem(storageKey);
+
+        if (m.sender !== currentUser && !isChatOpen) {
+            // الحالة 1: رسالة جديدة وصلت والبرنامج مفتوح
+            if (m.time > sessionStartTime) {
+                unreadCount++;
+                lastSenderName = senderLabel;
+                updateBadge();
+                playNotif();
+                localStorage.setItem(storageKey, msgId);
+            } 
+            // الحالة 2: رسالة جديدة (أخيرة) لم يسمعها المستخدم من قبل عند فتحه للتطبيق
+            else if (msgId !== lastNotifiedId) {
+                unreadCount++;
+                lastSenderName = senderLabel;
+                updateBadge();
+                playNotif();
+                localStorage.setItem(storageKey, msgId);
+            }
+        }
+    };
+
+    if (users[currentUser].role === 'super') {
+        db.ref(`chats`).on('child_added', snap => {
+            const workerName = snap.key;
+            snap.ref.limitToLast(1).on('child_added', msgSnap => {
+                checkAndNotify(msgSnap.val(), msgSnap.key, workerName);
+            });
+        });
+    } else {
+        db.ref(`chats/${currentUser}`).limitToLast(1).on('child_added', snap => {
+            checkAndNotify(snap.val(), snap.key, "الإدارة");
+        });
+    }
+}
+
+function updateBadge() {
+    const b = document.getElementById('unreadBadge');
+    if (unreadCount > 0) {
+        b.innerText = unreadCount + " - من: " + lastSenderName;
+        b.style.display = 'flex';
+    } else {
+        b.style.display = 'none';
+    }
+}
+
+function liveUpdate() {
+    let tp = 0, ts = 0;
+    document.querySelectorAll('#tbody tr').forEach(row => {
+        let l = parseFloat(row.cells[1].querySelector('input').value) || 0;
+        let s = parseFloat(row.cells[2].querySelector('input').value) || 0;
+        let r = l * s; row.cells[3].innerText = r.toFixed(0);
+        tp += r; ts += s;
+    });
+    document.getElementById('sumTotal').innerText = tp.toFixed(0);
+    document.getElementById('sumSizes').innerText = ts.toFixed(1);
+    clearTimeout(window.autoSaveTimer);
+    window.autoSaveTimer = setTimeout(silentSave, 2000);
+}
+
+function silentSave() {
+    if (!activeUser || (currentUser !== activeUser && users[currentUser].role !== 'super')) return;
+    let data = [];
+    document.querySelectorAll('#tbody tr').forEach(row => {
+        let n = row.cells[0].querySelector('input').value;
+        if(n.trim() !== "") data.push({
+            name: n, l: row.cells[1].querySelector('input').value, 
+            s: row.cells[2].querySelector('input').value, 
+            line: row.cells[4].querySelector('input').value, 
+            note: row.cells[5].querySelector('input').value 
+        });
+    });
+    db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).set(data);
+}
+
+function addRow(data = {name:'', l:0, s:0, line:1, note:''}) {
+    const row = document.getElementById('tbody').insertRow();
+    row.innerHTML = `<td><input type="text" value="${data.name}"></td><td><input type="number" value="${data.l}"></td><td><input type="number" value="${data.s}"></td><td style="font-weight:bold;">0</td><td><input type="text" value="${data.line}"></td><td><input type="text" value="${data.note}"></td><td class="noPrint"><button onclick="this.closest('tr').remove(); liveUpdate();" style="color:red; background:none; border:none;">✖</button></td>`;
+    liveUpdate();
+}
+
+function loadContent() {
+    document.getElementById('tbody').innerHTML = '';
+    if(!activeUser) return;
+    db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).once('value', snap => {
+        const data = snap.val() || [];
+        if(data.length > 0) {
+            data.forEach(item => addRow(item));
+        }
+    });
+}
+
+function toggleChat() {
+    isChatOpen = !isChatOpen;
+    document.getElementById('chatWindow').style.display = isChatOpen ? 'flex' : 'none';
+    if(isChatOpen) { 
+        unreadCount = 0; 
+        lastSenderName = "";
+        updateBadge(); 
+        loadChat(); 
+    }
+}
+
+function loadChat() {
+    const path = users[currentUser].role === 'super' ? chatRecipient : currentUser;
+    if(!path || path === "admin" && users[currentUser].role==='super') return;
+    db.ref(`chats/${path}`).off(); 
+    db.ref(`chats/${path}`).on('value', snap => {
+        const msgs = snap.val() || {};
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = Object.keys(msgs).map(key => {
+            const m = msgs[key];
+            return `<div class="msg ${m.sender===currentUser?'msg-me':'msg-them'}" oncontextmenu="event.preventDefault(); showMsgMenu(event,'${key}','${m.content}','${m.sender}')">${m.content}</div>`;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function sendMsg() {
+    const i = document.getElementById('chatMsgInput');
+    if(!i.value || (!chatRecipient && users[currentUser].role==='super')) return;
+    const path = users[currentUser].role==='super' ? chatRecipient : currentUser;
+    db.ref(`chats/${path}`).push({sender:currentUser, content:i.value, time:Date.now()});
+    i.value = '';
+}
+
+function playNotif() { 
+    const sound = document.getElementById('notifSound');
+    sound.currentTime = 0;
+    sound.play().catch(() => {}); 
+}
+
+function exportJSON(type) {
+    let path = (type === 'full') ? `/` : `archive/`;
+    db.ref(path).once('value', snap => {
+        let data = snap.val();
+        if(type === 'user') {
+            let filtered = {};
+            for(let date in data) {
+                filtered[date] = {};
+                for(let shift in data[date]) {
+                    if(data[date][shift][currentUser]) {
+                        filtered[date][shift] = { [currentUser]: data[date][shift][currentUser] };
+                    }
+                }
+            }
+            data = filtered;
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${type}_backup_${currentUser}_${new Date().toLocaleDateString()}.json`;
+        a.click();
+    });
+}
+
+function importJSON(input, type) {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if(type === 'full' && users[currentUser].role === 'super') {
+                if(confirm("تحذير: هذا سيستبدل كل شيء!")) db.ref('/').set(data).then(() => location.reload());
+            } else {
+                if(confirm("هل تريد دمج هذه البيانات مع أرشيفك؟")) {
+                    for(let date in data) {
+                        for(let shift in data[date]) {
+                            if(data[date][shift][currentUser]) {
+                                db.ref(`archive/${date}/${shift}/${currentUser}`).set(data[date][shift][currentUser]);
+                            }
+                        }
+                    }
+                    alert("تم الاستيراد بنجاح"); loadContent();
+                }
+            }
+        } catch(err) { alert("الملف غير صالح"); }
+    };
+    reader.readAsText(file);
+}
+
+function setupChatUI() {
+    const area = document.getElementById('chatRecipientArea');
+    if (users[currentUser].role === 'super') {
+        let s = `<select id="chatRecipientSelect" onchange="chatRecipient=this.value; loadChat();"><option value="">اختر موظف...</option>`;
+        Object.keys(users).forEach(u => { if(u!==currentUser && users[u].role!=='super') s+=`<option value="${u}">${u}</option>`; });
+        area.innerHTML = s + `</select>`;
+    } else { area.innerHTML = `<span style="font-size:12px;">مراسلة الإدارة</span>`; chatRecipient = "admin"; }
+}
+
+function sendFile(input) {
+    const file = input.files[0];
+    if (!file || !chatRecipient) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const path = users[currentUser].role === 'super' ? chatRecipient : currentUser;
+        db.ref(`chats/${path}`).push({
+            sender: currentUser,
+            content: `<img src="${e.target.result}" onclick="window.open(this.src)">`,
+            time: Date.now()
+        });
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+}
+
+function showMsgMenu(e, id, content, sender) {
+    if(sender !== currentUser) return;
+    selectedMsgId = id; selectedMsgContent = content;
+    const m = document.getElementById('msgMenu');
+    m.style.display='block'; m.style.top=e.pageY+'px'; m.style.left=e.pageX+'px';
+}
+
+function closeMsgMenu() { document.getElementById('msgMenu').style.display='none'; }
+
+function deleteMsgUI() {
+    const path = users[currentUser].role === 'super' ? chatRecipient : currentUser;
+    db.ref(`chats/${path}/${selectedMsgId}`).remove(); closeMsgMenu();
+}
+
+function editMsgUI() {
+    if(selectedMsgContent.includes('<img')) return alert("لا يمكن تعديل الصور");
+    const t = prompt("تعديل:", selectedMsgContent);
+    if(t) {
+        const path = users[currentUser].role === 'super' ? chatRecipient : currentUser;
+        db.ref(`chats/${path}/${selectedMsgId}`).update({content: t + " (معدلة)"});
+    }
+    closeMsgMenu();
+}
+
+function updateSelectors() {
+    const uSelect = document.getElementById('userSelect');
+    if (users[currentUser].role === 'super') {
+        uSelect.innerHTML = Object.keys(users).filter(u => users[u].role !== 'super').map(u => `<option value="${u}" ${u===activeUser?'selected':''}>${u}</option>`).join('');
+    } else { uSelect.innerHTML = `<option value="${currentUser}">${currentUser}</option>`; }
+    document.getElementById('daySelect').innerHTML = `<option value="${activeDay}">${activeDay}</option>`;
+}
+
+function initApp() {
+    updateSelectors();
+    db.ref('users').on('value', snap => { users = snap.val() || users; updateSelectors(); renderAdmin(); });
+    db.ref('.info/connected').on('value', snap => {
+        const dot = document.getElementById('connDot');
+        dot.style.background = snap.val() ? "#2ecc71" : "#e74c3c";
+        document.getElementById('connText').innerText = snap.val() ? "متصل" : "أوفلاين";
+    });
+}
+
+function switchContext() {
+    activeUser = document.getElementById('userSelect').value;
+    activeShift = document.getElementById('shiftSelect').value;
+    loadContent();
+}
+
+function renderAdmin() {
+    if(users[currentUser].role !== 'super') return;
+    document.getElementById('adminPanel').style.display = 'block';
+    document.getElementById('usersList').innerHTML = Object.keys(users).filter(u => users[u].role !== 'super').map(u => `
+        <div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
+            <span>👤 ${u}</span><button onclick="if(confirm('حذف؟')) db.ref('users/'+'${u}').remove()" style="color:red; background:none; border:none;">حذف</button>
+        </div>`).join('');
+}
+
+function addNewWorker() {
+    let n = document.getElementById('newWorkerName').value.trim();
+    let p = document.getElementById('newWorkerPass').value.trim();
+    if(n && p) db.ref('users/' + n).set({ pass: btoa(p), role: "user" });
+}
+</script>
+</body>
+</html>
+
