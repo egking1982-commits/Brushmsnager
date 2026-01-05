@@ -41,13 +41,10 @@
         .btn-json { background: #6c757d; }
         .btn-cloud { background: #0984e3; }
 
-        #msgMenu { position: fixed; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: none; z-index: 2000; min-width: 120px; overflow: hidden; }
-        .menu-item { padding: 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
-
         #chatWindow { position: fixed; bottom: 85px; left: 20px; width: 320px; height: 450px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1001; overflow: hidden; }
         #chatHeader { background: var(--primary); color: white; padding: 10px 15px; font-weight: bold; }
         #chatMessages { flex: 1; padding: 15px; overflow-y: auto; background: #f4f7f6; display: flex; flex-direction: column; gap: 8px; }
-        .msg { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 13px; position: relative; word-wrap: break-word; cursor: context-menu; }
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 13px; word-wrap: break-word; }
         .msg-me { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
         .msg-them { align-self: flex-start; background: #fff; color: #333; border-bottom-left-radius: 4px; }
 
@@ -56,7 +53,7 @@
         @media print { .noPrint, .whatsapp-float, .chat-toggle, #chatWindow, .footer-credit { display: none !important; } }
     </style>
 </head>
-<body onclick="closeMsgMenu()">
+<body>
 
 <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
 
@@ -64,10 +61,6 @@
 <button class="chat-toggle noPrint" onclick="toggleChat()">
     💬 <span id="unreadBadge" class="unread-badge">0</span>
 </button>
-
-<div id="msgMenu">
-    <div class="menu-item" style="color:red;" onclick="deleteMsgUI()">🗑️ حذف للكل</div>
-</div>
 
 <div id="chatWindow">
     <div id="chatHeader">
@@ -90,7 +83,7 @@
     <input id="pass" type="password" placeholder="الباسورد" style="margin-bottom:15px;"><br>
     <button onclick="login('user')" class="btn btn-primary" style="width:100%">دخول</button>
     <hr>
-    <button onclick="document.getElementById('adminForm').style.display='block'" style="background:none; border:none; color:var(--primary); font-size:12px;">دخول السوبر أدمن 🛠</button>
+    <button onclick="document.getElementById('adminForm').style.display='block'" style="background:none; border:none; color:var(--primary); font-size:12px;">دخول المسؤول 🛠</button>
     <div id="adminForm" style="display:none; margin-top:10px;">
         <input id="adminUser" type="text" placeholder="المسؤول"><br>
         <input id="adminPass" type="password" placeholder="الكود" style="margin-top:5px;"><br>
@@ -144,16 +137,16 @@
         <button onclick="window.print()" class="btn btn-danger">📄 PDF</button>
         <hr>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div style="border-left:1px solid #eee; padding-right:5px;">
-                <p style="font-size:11px; font-weight:bold; color:var(--dark);">📂 أوفلاين (ملفات JSON)</p>
-                <button onclick="exportJSON('user')" class="btn btn-json" style="width:90%">📤 تصدير ملف</button>
-                <button onclick="document.getElementById('importFileUser').click()" class="btn btn-json" style="width:90%">📥 استيراد ملف</button>
-                <input type="file" id="importFileUser" hidden onchange="importJSON(this, 'user')">
+            <div style="border-left:1px solid #eee;">
+                <p style="font-size:11px; font-weight:bold;">📂 أوفلاين (JSON)</p>
+                <button onclick="exportJSON()" class="btn btn-json" style="width:90%">📤 تصدير</button>
+                <button onclick="document.getElementById('importFileUser').click()" class="btn btn-json" style="width:90%">📥 استيراد</button>
+                <input type="file" id="importFileUser" hidden onchange="importJSON(this)">
             </div>
             <div>
-                <p style="font-size:11px; font-weight:bold; color:#0984e3;">☁️ أونلاين (سحابة Firebase)</p>
+                <p style="font-size:11px; font-weight:bold; color:#0984e3;">☁️ أونلاين (Firebase)</p>
                 <button onclick="cloudBackup()" class="btn btn-cloud" style="width:90%">📤 رفع للسحابة</button>
-                <button onclick="cloudRestore()" class="btn btn-cloud" style="width:90%">📥 استعادة سحابية</button>
+                <button onclick="cloudRestore()" class="btn btn-cloud" style="width:90%">📥 استعادة</button>
             </div>
         </div>
     </div>
@@ -182,7 +175,7 @@ function login(type) {
     db.ref('users').once('value', snap => {
         let all = snap.val() || users;
         if (all[u] && all[u].pass === btoa(p)) { users = all; startSession(u); } 
-        else alert("خطأ في البيانات");
+        else Swal.fire('خطأ', 'بيانات الدخول غير صحيحة', 'error');
     });
 }
 
@@ -197,42 +190,74 @@ function startSession(u) {
     initApp(); loadContent(); setupChatUI(); listenForNotifications();
 }
 
-// --- نظام السحابة (أونلاين) ---
-function cloudBackup() {
-    db.ref(`archive`).once('value', snap => {
-        let allData = snap.val() || {};
+// --- نظام السحابة المطور ---
+async function cloudBackup() {
+    Swal.fire({ title: 'جاري التحضير لرفع البيانات...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    try {
+        const snap = await db.ref('archive').once('value');
+        const allData = snap.val() || {};
         let myArchive = {};
-        for(let d in allData) for(let s in allData[d]) if(allData[d][s][currentUser]) {
-            if(!myArchive[d]) myArchive[d] = {};
-            if(!myArchive[d][s]) myArchive[d][s] = {};
-            myArchive[d][s][currentUser] = allData[d][s][currentUser];
-        }
-        db.ref(`backups/${currentUser}`).set({
-            data: myArchive,
-            lastUpdate: Date.now()
-        }).then(() => Swal.fire('تم الرفع', 'تم حفظ نسخة من أرشيفك في السحابة بنجاح', 'success'));
-    });
-}
+        let hasData = false;
 
-function cloudRestore() {
-    db.ref(`backups/${currentUser}`).once('value', snap => {
-        let cloud = snap.val();
-        if(!cloud || !cloud.data) return Swal.fire('خطأ', 'لا توجد نسخة سحابية سابقة', 'error');
-        if(confirm("سيتم دمج البيانات السحابية مع أرشيفك الحالي، استمرار؟")) {
-            let data = cloud.data;
-            for(let d in data) for(let s in data[d]) if(data[d][s][currentUser]) {
-                db.ref(`archive/${d}/${s}/${currentUser}`).set(data[d][s][currentUser]);
+        for (let d in allData) {
+            for (let s in allData[d]) {
+                if (allData[d][s][currentUser]) {
+                    if (!myArchive[d]) myArchive[d] = {};
+                    myArchive[d][s] = { [currentUser]: allData[d][s][currentUser] };
+                    hasData = true;
+                }
             }
-            Swal.fire('تمت الاستعادة', 'تم مزامنة بياناتك من السحابة بنجاح', 'success');
-            loadContent();
         }
-    });
+
+        if (!hasData) {
+            Swal.fire('لا توجد بيانات', 'أنت لم تقم بتسجيل أي بيانات بعد لرفعها', 'info');
+            return;
+        }
+
+        await db.ref(`backups/${currentUser}`).set({
+            data: myArchive,
+            lastSync: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        Swal.fire('نجاح', 'تم حفظ نسخة احتياطية سحابية لبياناتك بالكامل', 'success');
+    } catch (err) {
+        Swal.fire('خطأ', 'حدثت مشكلة أثناء الرفع: ' + err.message, 'error');
+    }
 }
 
-// --- نظام الملفات (أوفلاين) ---
-function exportJSON(type) {
-    db.ref(`archive`).once('value', snap => {
-        let data = snap.val(); if(!data) return alert("لا يوجد بيانات");
+async function cloudRestore() {
+    const snap = await db.ref(`backups/${currentUser}`).once('value');
+    const cloud = snap.val();
+    
+    if (!cloud || !cloud.data) {
+        return Swal.fire('تنبيه', 'لا توجد نسخة سحابية محفوظة لك', 'warning');
+    }
+
+    const result = await Swal.fire({
+        title: 'استعادة سحابية؟',
+        text: "سيتم دمج البيانات السحابية مع الأرشيف الحالي. قد يؤدي هذا لتعديل بيانات مسجلة مسبقاً بنفس التاريخ.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'تأكيد الاستعادة',
+        cancelButtonText: 'إلغاء'
+    });
+
+    if (result.isConfirmed) {
+        for (let d in cloud.data) {
+            for (let s in cloud.data[d]) {
+                await db.ref(`archive/${d}/${s}/${currentUser}`).set(cloud.data[d][s][currentUser]);
+            }
+        }
+        Swal.fire('تمت الاستعادة', 'تمت مزامنة بياناتك بنجاح', 'success');
+        loadContent();
+    }
+}
+
+// --- نظام الملفات JSON ---
+function exportJSON() {
+    db.ref('archive').once('value', snap => {
+        let data = snap.val(); if(!data) return Swal.fire('تنبيه', 'لا توجد بيانات', 'info');
         let filtered = {};
         for(let d in data) for(let s in data[d]) if(data[d][s][currentUser]) {
             if(!filtered[d]) filtered[d] = {};
@@ -242,7 +267,7 @@ function exportJSON(type) {
         const blob = new Blob([JSON.stringify(filtered, null, 2)], {type:'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `Backup_Offline_${currentUser}.json`;
+        a.download = `Backup_${currentUser}_${new Date().toISOString().slice(0,10)}.json`;
         a.click();
     });
 }
@@ -250,16 +275,17 @@ function exportJSON(type) {
 function importJSON(input) {
     const file = input.files[0]; if(!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            if(confirm("دمج الملف مع الأرشيف الحالي؟")) {
+            const res = await Swal.fire({ title: 'تأكيد الاستيراد', text: "هل تريد دمج هذا الملف مع الأرشيف؟", showCancelButton: true });
+            if(res.isConfirmed) {
                 for(let d in data) for(let s in data[d]) if(data[d][s][currentUser]) {
                     db.ref(`archive/${d}/${s}/${currentUser}`).set(data[d][s][currentUser]);
                 }
-                alert("تم الدمج أوفلاين"); loadContent();
+                Swal.fire('نجاح', 'تم استيراد الملف', 'success'); loadContent();
             }
-        } catch(err) { alert("ملف خاطئ"); }
+        } catch(err) { Swal.fire('خطأ', 'تنسيق الملف غير صحيح', 'error'); }
     };
     reader.readAsText(file);
 }
@@ -283,14 +309,27 @@ function silentSave() {
     let data = [];
     document.querySelectorAll('#tbody tr').forEach(row => {
         let n = row.cells[0].querySelector('input').value;
-        if(n.trim() !== "") data.push({ name: n, l: row.cells[1].querySelector('input').value, s: row.cells[2].querySelector('input').value, line: row.cells[4].querySelector('input').value, note: row.cells[5].querySelector('input').value });
+        if(n.trim() !== "") data.push({ 
+            name: n, 
+            l: row.cells[1].querySelector('input').value, 
+            s: row.cells[2].querySelector('input').value, 
+            line: row.cells[4].querySelector('input').value, 
+            note: row.cells[5].querySelector('input').value 
+        });
     });
     db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).set(data);
 }
 
 function addRow(d = {name:'', l:0, s:0, line:1, note:''}) {
     const r = document.getElementById('tbody').insertRow();
-    r.innerHTML = `<td><input type="text" value="${d.name}"></td><td><input type="number" value="${d.l}"></td><td><input type="number" value="${d.s}"></td><td style="font-weight:bold;">0</td><td><input type="text" value="${d.line}"></td><td><input type="text" value="${d.note}"></td><td class="noPrint"><button onclick="this.closest('tr').remove(); liveUpdate();" style="color:red; background:none; border:none;">✖</button></td>`;
+    r.innerHTML = `
+        <td><input type="text" value="${d.name}"></td>
+        <td><input type="number" value="${d.l}"></td>
+        <td><input type="number" value="${d.s}"></td>
+        <td style="font-weight:bold;">0</td>
+        <td><input type="text" value="${d.line}"></td>
+        <td><input type="text" value="${d.note}"></td>
+        <td class="noPrint"><button onclick="this.closest('tr').remove(); liveUpdate();" style="color:red; background:none; border:none;">✖</button></td>`;
     liveUpdate();
 }
 
@@ -302,7 +341,7 @@ function loadContent() {
     });
 }
 
-// --- بقية الدوال (المحادثة والتنسيق) ---
+// --- نظام المحادثة ---
 function listenForNotifications() {
     db.ref('chats').on('value', snap => {
         let unread = 0; const all = snap.val() || {};
@@ -333,13 +372,17 @@ function loadChat() {
             <div class="msg ${msgs[k].sender===currentUser?'msg-me':'msg-them'}">${msgs[k].content}</div>
         `).join('');
         document.getElementById('chatMessages').scrollTop = 99999;
+        // تحديث حالة الرسائل كمقروءة
+        Object.keys(msgs).forEach(k => {
+            if(msgs[k].sender !== currentUser) db.ref(`chats/${path}/${k}/isRead`).set(true);
+        });
     });
 }
 
 function sendMsg() {
     const i = document.getElementById('chatMsgInput');
     const path = users[currentUser].role==='super' ? chatRecipient : currentUser;
-    if(!i.value) return;
+    if(!i.value.trim()) return;
     db.ref(`chats/${path}`).push({ sender: currentUser, content: i.value, time: Date.now(), isRead: false });
     i.value = '';
 }
@@ -353,16 +396,15 @@ function setupChatUI() {
     } else { area.innerHTML = `<span style="font-size:12px;">مراسلة الإدارة</span>`; chatRecipient = "admin"; }
 }
 
-function updateSelectors() {
-    const uSelect = document.getElementById('userSelect');
-    if (users[currentUser].role === 'super') {
-        uSelect.innerHTML = Object.keys(users).filter(u => users[u].role !== 'super').map(u => `<option value="${u}" ${u===activeUser?'selected':''}>${u}</option>`).join('');
-    } else { uSelect.innerHTML = `<option value="${currentUser}">${currentUser}</option>`; }
-}
-
 function initApp() {
-    updateSelectors();
-    db.ref('users').on('value', snap => { users = snap.val() || users; updateSelectors(); renderAdmin(); });
+    db.ref('users').on('value', snap => { 
+        users = snap.val() || users; 
+        const uSelect = document.getElementById('userSelect');
+        if (users[currentUser].role === 'super') {
+            uSelect.innerHTML = Object.keys(users).filter(u => users[u].role !== 'super').map(u => `<option value="${u}" ${u===activeUser?'selected':''}>${u}</option>`).join('');
+        } else { uSelect.innerHTML = `<option value="${currentUser}">${currentUser}</option>`; }
+        renderAdmin(); 
+    });
     db.ref('.info/connected').on('value', snap => {
         document.getElementById('connDot').style.background = snap.val() ? "#2ecc71" : "#e74c3c";
         document.getElementById('connText').innerText = snap.val() ? "متصل" : "أوفلاين";
