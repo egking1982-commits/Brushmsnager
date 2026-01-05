@@ -1,7 +1,7 @@
 {
   "name": "BrushManager Pro",
   "short_name": "BrushManager",
-  "description": "نظام إدارة الورش والمصانع - الإصدار 2.7.0",
+  "description": "نظام إدارة الورش والمصانع - الإصدار 2.8.5",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0f2f5",
