@@ -3,157 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>BrushManager Pro - V2.8.5</title>
+    <title>BrushManager Pro - V3.0.0 Ultimate</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4361ee">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1048/1048953.png">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #f72585; --bg: #f0f2f5; --whatsapp: #25D366; --warning: #ff9f43; --gray: #888; --dark: #2d3436; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; overflow-x: hidden; }
+        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #f72585; --bg: #f0f2f5; --dark: #2d3436; --warning: #ff9f43; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .card { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); margin-bottom: 15px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .stat-card { background: #ffffff; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .stat-card h4 { margin: 0; font-size: 12px; color: #777; font-weight: 600; }
-        .stat-card p { margin: 8px 0 0; font-size: 20px; font-weight: 800; color: var(--primary); }
         
-        .whatsapp-float { position: fixed; width: 50px; height: 50px; bottom: 80px; left: 20px; background-color: var(--whatsapp); color: #FFF; border-radius: 50px; text-align: center; font-size: 24px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2); z-index: 1000; display: flex; align-items: center; justify-content: center; text-decoration: none; }
-        .chat-toggle { position: fixed; width: 50px; height: 50px; bottom: 20px; left: 20px; background-color: var(--primary); color: #FFF; border-radius: 50px; text-align: center; font-size: 24px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2); z-index: 1000; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; }
-        .unread-badge { position: absolute; top: -10px; right: -5px; background: red; color: white; border-radius: 12px; min-width: 20px; height: 20px; font-size: 11px; display: none; align-items: center; justify-content: center; padding: 0 6px; white-space: nowrap; font-weight: bold; border: 2px solid white; }
+        /* سجل العمليات */
+        .log-container { max-height: 200px; overflow-y: auto; background: #1e272e; color: #0be881; border-radius: 10px; padding: 10px; font-family: monospace; font-size: 11px; }
+        .log-row { border-bottom: 1px solid #3d3d3d; padding: 4px 0; display: flex; justify-content: space-between; }
 
-        table { width: 100%; border-collapse: collapse; min-width: 600px; background: white; }
-        th { background: var(--dark); color: white; padding: 12px; font-size: 13px; border: 1px solid #444; }
+        table { width: 100%; border-collapse: collapse; background: white; min-width: 600px; }
+        th { background: var(--dark); color: white; padding: 12px; font-size: 13px; }
         td { padding: 5px; border: 1px solid #ddd; text-align: center; }
-        input, select { width: 92%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; text-align: center; font-size: 14px; font-family: inherit; }
+        input, select { width: 92%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 14px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; margin: 5px; }
         
-        .btn { padding: 10px 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; color: white; margin: 5px; font-size: 13px; transition: 0.2s; }
-        .btn-primary { background: var(--primary); }
-        .btn-success { background: var(--success); }
-        .btn-danger { background: var(--danger); }
-        .btn-json { background: #6c757d; }
-        .btn-cloud { background: #0984e3; }
+        /* نظام الشات */
+        #chatBox { position: fixed; bottom: 20px; left: 20px; width: 340px; height: 500px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1000; overflow: hidden; border: 1px solid #ddd; }
+        #chatMessages { flex: 1; padding: 10px; overflow-y: auto; background: #f0f2f5; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 85%; padding: 10px; border-radius: 15px; font-size: 13px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .msg.sent { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 2px; }
+        .msg.received { align-self: flex-start; background: white; color: #000; border-bottom-left-radius: 2px; }
+        .msg img { max-width: 100%; border-radius: 10px; margin-top: 5px; cursor: pointer; }
+        .private-tag { font-size: 9px; background: var(--danger); color: white; padding: 2px 5px; border-radius: 5px; }
+        .msg-actions { display: none; position: absolute; top: -25px; left: 0; background: #333; border-radius: 5px; padding: 2px 8px; gap: 10px; }
+        .msg:hover .msg-actions { display: flex; }
 
-        #chatWindow { position: fixed; bottom: 85px; left: 20px; width: 320px; height: 450px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1001; overflow: hidden; }
-        #chatHeader { background: var(--primary); color: white; padding: 10px 15px; font-weight: bold; }
-        #chatMessages { flex: 1; padding: 15px; overflow-y: auto; background: #f4f7f6; display: flex; flex-direction: column; gap: 8px; }
-        .msg { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 13px; word-wrap: break-word; }
-        .msg-me { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
-        .msg-them { align-self: flex-start; background: #fff; color: #333; border-bottom-left-radius: 4px; }
+        #chatToggle { position: fixed; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; display: none; justify-content: center; align-items: center; color: white; font-size: 24px; cursor: pointer; z-index: 999; }
 
-        .footer-credit { text-align: center; margin-top: 20px; font-size: 12px; color: var(--gray); font-weight: 600; padding: 10px; }
-
-        @media print { .noPrint, .whatsapp-float, .chat-toggle, #chatWindow, .footer-credit { display: none !important; } }
+        @media print { 
+            .noPrint { display: none !important; } 
+            .card { box-shadow: none; border: 1px solid #000; margin: 0; padding: 10px; }
+            body { background: white; }
+            #printableArea { display: block !important; }
+        }
     </style>
 </head>
 <body>
 
-<audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
-
-<a href="https://wa.me/201288761131" class="whatsapp-float noPrint" target="_blank">📲</a>
-<button class="chat-toggle noPrint" onclick="toggleChat()">
-    💬 <span id="unreadBadge" class="unread-badge">0</span>
-</button>
-
-<div id="chatWindow">
-    <div id="chatHeader">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>المحادثة المباشرة</span>
-            <span onclick="toggleChat()" style="cursor:pointer; font-size: 20px;">✕</span>
-        </div>
-        <div id="chatRecipientArea"></div>
-    </div>
-    <div id="chatMessages"></div>
-    <div id="chatInputArea" style="padding:10px; display:flex; gap:5px; align-items:center; border-top:1px solid #eee;">
-        <input type="text" id="chatMsgInput" placeholder="اكتب...">
-        <button onclick="sendMsg()" class="btn btn-primary" style="margin:0;">ارسل</button>
-    </div>
-</div>
-
 <div id="loginBox" class="card" style="max-width:400px; margin:50px auto; text-align:center;">
-    <h2 style="color:var(--primary);">🔐 BrushManager Pro</h2>
-    <input id="username" type="text" placeholder="اسم المستخدم" style="margin-bottom:10px;"><br>
-    <input id="pass" type="password" placeholder="الباسورد" style="margin-bottom:15px;"><br>
-    <button onclick="login('user')" class="btn btn-primary" style="width:100%">دخول</button>
-    <hr>
-    <button onclick="document.getElementById('adminForm').style.display='block'" style="background:none; border:none; color:var(--primary); font-size:12px;">دخول المسؤول 🛠</button>
-    <div id="adminForm" style="display:none; margin-top:10px;">
-        <input id="adminUser" type="text" placeholder="المسؤول"><br>
-        <input id="adminPass" type="password" placeholder="الكود" style="margin-top:5px;"><br>
-        <button onclick="login('admin')" class="btn btn-danger" style="width:100%; margin-top:10px;">دخول المسؤول</button>
-    </div>
-    <div class="footer-credit" style="margin-top:15px;">برمجة أ. محمود بدير - إصدار V2.8.5</div>
+    <h2 style="color:var(--primary);">🛡️ BrushManager Ultimate</h2>
+    <input id="username" type="text" placeholder="اسم المستخدم"><br><br>
+    <input id="pass" type="password" placeholder="كلمة المرور"><br><br>
+    <button onclick="login()" class="btn" style="background:var(--primary); width:100%">دخول آمن</button>
 </div>
 
 <div id="app" style="display:none;">
     <div class="card noPrint" style="display:flex; justify-content:space-between; align-items:center;">
-        <div><span id="connDot" style="width:10px; height:10px; border-radius:50%; display:inline-block;"></span> <span id="connText" style="font-size:11px;"></span></div>
-        <div style="font-weight:bold;">👤 <span id="welcomeUser"></span></div>
-        <button onclick="location.reload()" class="btn btn-danger" style="padding:5px 10px;">خروج</button>
+        <div>🟢 <span id="connText">متصل</span> | مرحباً: <b id="welcomeUser"></b></div>
+        <div>
+            <button onclick="printReport()" class="btn" style="background:var(--dark)">🖨️ طباعة PDF منظم</button>
+            <button onclick="location.reload()" class="btn" style="background:var(--danger)">خروج</button>
+        </div>
     </div>
 
-    <div id="adminPanel" class="card noPrint" style="display:none; border:2px solid var(--danger);">
-        <h4 style="color:var(--danger); margin-top:0;">🛠 إدارة النظام</h4>
-        <div style="display:flex; gap:5px; margin-bottom:10px;">
-            <input id="newWorkerName" type="text" placeholder="اسم الموظف">
-            <input id="newWorkerPass" type="text" placeholder="الباسورد">
-            <button onclick="addNewWorker()" class="btn btn-success">إضافة</button>
+    <div id="adminArea" class="noPrint" style="display:none;">
+        <div class="card" style="border: 2px solid var(--warning);">
+            <h4 style="margin:0 0 10px 0; color:var(--dark);">📜 سجل نشاط النظام (Audit Log)</h4>
+            <div id="auditLogs" class="log-container"></div>
+            <div style="margin-top:10px;">
+                <button onclick="clearLogs()" class="btn" style="background:var(--danger); font-size:11px;">🗑️ مسح السجل</button>
+                <button onclick="printLogs()" class="btn" style="background:var(--primary); font-size:11px;">📋 طباعة السجل</button>
+            </div>
         </div>
-        <div id="usersList"></div>
+        
+        <div class="card">
+            <h4 style="color:var(--danger); margin:0 0 10px 0;">🛠️ إدارة الموظفين</h4>
+            <div style="display:flex; gap:5px; margin-bottom:15px;">
+                <input id="newWorkerName" type="text" placeholder="اسم الموظف">
+                <input id="newWorkerPass" type="text" placeholder="الباسورد">
+                <button onclick="addNewWorker()" class="btn" style="background:var(--success)">إضافة</button>
+            </div>
+            <div id="usersList"></div>
+        </div>
     </div>
 
     <div class="card noPrint" style="display:flex; gap:10px; flex-wrap:wrap;">
-        <div style="flex:1;"><label style="font-size:11px;">المستخدم</label><select id="userSelect" onchange="switchContext()"></select></div>
-        <div style="flex:1;"><label style="font-size:11px;">التاريخ</label><input type="date" id="daySelect" onchange="switchContext()"></div>
-        <div style="flex:1;"><label style="font-size:11px;">الوردية</label>
+        <div style="flex:1;"><label>التاريخ</label><input type="date" id="daySelect" onchange="switchContext()"></div>
+        <div style="flex:1;"><label>الوردية</label>
             <select id="shiftSelect" onchange="switchContext()">
-                <option value="وردية_1">الأولى</option><option value="وردية_2">الثانية</option><option value="وردية_3">الثالثة</option>
+                <option value="وردية_1">الأولى</option>
+                <option value="وردية_2">الثانية</option>
+                <option value="وردية_3">الثالثة</option>
             </select>
         </div>
+        <div style="flex:1;"><label>الموظف</label><select id="userSelect" onchange="switchContext()"></select></div>
     </div>
 
-    <div id="printArea">
-        <div class="stats-grid">
-            <div class="stat-card"><h4>إجمالي القطع</h4><p id="sumTotal">0</p></div>
-            <div class="stat-card"><h4>إجمالي المقاسات</h4><p id="sumSizes">0</p></div>
+    <div id="printableArea" class="card">
+        <div class="onlyPrint" style="text-align:center; display:none;">
+            <h2>تقرير إنتاج مصنع الفرش</h2>
+            <p id="printInfo"></p>
         </div>
-        <div class="card" style="overflow-x:auto;">
+        <div style="display:flex; justify-content:space-around; margin-bottom:15px; background:var(--bg); padding:10px; border-radius:10px;">
+            <div>إجمالي القطع: <b id="sumTotal" style="color:var(--primary); font-size:18px;">0</b></div>
+            <div>إجمالي المقاسات: <b id="sumSizes" style="color:var(--success); font-size:18px;">0</b></div>
+        </div>
+        <div style="overflow-x:auto;">
             <table id="mainTable">
                 <thead><tr><th>الفرشة</th><th>الطبقات</th><th>المقاس</th><th>المجموع</th><th>الخط</th><th>ملاحظات</th><th class="noPrint">✖</th></tr></thead>
-                <tbody id="tbody" oninput="liveUpdate()" onkeyup="liveUpdate()"></tbody>
+                <tbody id="tbody" oninput="liveUpdate()"></tbody>
             </table>
         </div>
+        <br>
+        <button onclick="addRow()" class="btn noPrint" style="background:var(--success); width:100%">➕ إضافة سطر جديد</button>
     </div>
 
     <div class="card noPrint" style="text-align:center;">
-        <button onclick="addRow()" class="btn btn-success">➕ إضافة سطر</button>
-        <button onclick="window.print()" class="btn btn-danger">📄 PDF</button>
-        <hr>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div style="border-left:1px solid #eee;">
-                <p style="font-size:11px; font-weight:bold;">📂 أوفلاين (JSON)</p>
-                <button onclick="exportJSON()" class="btn btn-json" style="width:90%">📤 تصدير</button>
-                <button onclick="document.getElementById('importFileUser').click()" class="btn btn-json" style="width:90%">📥 استيراد</button>
-                <input type="file" id="importFileUser" hidden onchange="importJSON(this)">
-            </div>
-            <div>
-                <p style="font-size:11px; font-weight:bold; color:#0984e3;">☁️ أونلاين (Firebase)</p>
-                <button onclick="cloudBackup()" class="btn btn-cloud" style="width:90%">📤 رفع للسحابة</button>
-                <button onclick="cloudRestore()" class="btn btn-cloud" style="width:90%">📥 استعادة</button>
-            </div>
+        <button onclick="cloudBackup()" class="btn" style="background:#0984e3;">📤 رفع أرشيف المصنع</button>
+        <button onclick="cloudRestore()" class="btn" style="background:#6c5ce7;">📥 استعادة الأرشيف</button>
+    </div>
+</div>
+
+<div id="chatToggle" onclick="toggleChat()">💬</div>
+
+<div id="chatBox">
+    <div style="background:var(--primary); color:white; padding:12px; font-weight:bold;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>💬 المراسلة الخاصة</span>
+            <span onclick="toggleChat()" style="cursor:pointer;">✖</span>
+        </div>
+        <select id="chatRecipient" style="width:100%; margin-top:5px; height:30px; font-size:11px;"></select>
+    </div>
+    <div id="chatMessages"></div>
+    <div style="padding:10px; border-top:1px solid #eee;">
+        <div style="display:flex; gap:5px; align-items:center;">
+            <button onclick="document.getElementById('chatFile').click()" style="background:none; border:none; font-size:18px; cursor:pointer;">📎</button>
+            <input type="file" id="chatFile" style="display:none" onchange="sendChatFile(this)">
+            <input type="text" id="chatMsgInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendChatMessage()" style="flex:1;">
+            <button onclick="sendChatMessage()" style="background:var(--primary); color:white; border:none; border-radius:50%; width:35px; height:35px; cursor:pointer;">✈</button>
         </div>
     </div>
 </div>
 
 <script>
-// إعدادات Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDDhfiJkDvafZQB57DA9jsF7R3iF8jokQI",
     authDomain: "brushmanager-98d94.firebaseapp.com",
@@ -164,160 +155,162 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let users = {"admin":{"pass":"MTIz","role":"super"}};
 let currentUser, activeUser, activeDay, activeShift;
-let chatRecipient = "admin";
-let isChatOpen = false;
+let users = {};
 
-function login(type) {
-    let u = (type === 'admin' ? document.getElementById('adminUser') : document.getElementById('username')).value.trim();
-    let p = (type === 'admin' ? document.getElementById('adminPass') : document.getElementById('pass')).value;
+// 1. الدخول والبدء
+function login() {
+    let u = document.getElementById('username').value.trim();
+    let p = document.getElementById('pass').value;
     db.ref('users').once('value', snap => {
-        let all = snap.val() || users;
-        if (all[u] && all[u].pass === btoa(p)) { users = all; startSession(u); } 
-        else Swal.fire('خطأ', 'بيانات الدخول غير صحيحة', 'error');
+        users = snap.val() || {"admin":{"pass":"MTIz","role":"super"}};
+        if (users[u] && users[u].pass === btoa(p)) {
+            currentUser = activeUser = u;
+            startApp();
+            logSystem("تسجيل دخول", "موفق");
+        } else Swal.fire('فشل', 'بيانات خاطئة', 'error');
     });
 }
 
-function startSession(u) {
-    currentUser = activeUser = u;
-    activeDay = new Date().toISOString().split('T')[0];
-    activeShift = "وردية_1";
+function startApp() {
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    document.getElementById('welcomeUser').innerText = u;
+    document.getElementById('chatToggle').style.display = 'flex';
+    document.getElementById('welcomeUser').innerText = currentUser;
+    
+    activeDay = new Date().toISOString().split('T')[0];
     document.getElementById('daySelect').value = activeDay;
-    initApp(); loadContent(); setupChatUI(); listenForNotifications();
+    activeShift = "وردية_1";
+    
+    if(users[currentUser].role === 'super') {
+        document.getElementById('adminArea').style.display = 'block';
+        listenToAudit();
+        renderAdminUsers();
+    }
+    
+    updateUserSelector();
+    loadContent();
+    initChat();
+    updateRecipientList();
 }
 
-// --- نظام السحابة المطور ---
-async function cloudBackup() {
-    Swal.fire({ title: 'جاري التحضير لرفع البيانات...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    
-    try {
-        const snap = await db.ref('archive').once('value');
-        const allData = snap.val() || {};
-        let myArchive = {};
-        let hasData = false;
+// 2. نظام السجل (Audit Log)
+function logSystem(action, details) {
+    db.ref('system_audit').push({
+        user: currentUser,
+        action: action,
+        details: details,
+        time: new Date().toLocaleString('ar-EG'),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+}
 
-        for (let d in allData) {
-            for (let s in allData[d]) {
-                if (allData[d][s][currentUser]) {
-                    if (!myArchive[d]) myArchive[d] = {};
-                    myArchive[d][s] = { [currentUser]: allData[d][s][currentUser] };
-                    hasData = true;
-                }
+function listenToAudit() {
+    db.ref('system_audit').limitToLast(50).on('value', snap => {
+        const logs = snap.val() || {};
+        document.getElementById('auditLogs').innerHTML = Object.values(logs).reverse().map(l => `
+            <div class="log-row">
+                <span>[${l.time}] <b>${l.user}</b></span>
+                <span>${l.action}: ${l.details}</span>
+            </div>
+        `).join('');
+    });
+}
+
+function clearLogs() {
+    if(confirm('سيتم حذف سجل النشاط بالكامل، هل أنت متأكد؟')) {
+        db.ref('system_audit').remove();
+        logSystem("مسح السجل", "بواسطة الأدمن");
+    }
+}
+
+// 3. الطباعة
+function printReport() {
+    document.getElementById('printInfo').innerText = `التاريخ: ${activeDay} | الوردية: ${activeShift} | الموظف: ${activeUser}`;
+    window.print();
+    logSystem("طباعة", `تقرير ${activeDay}`);
+}
+
+function printLogs() {
+    const content = document.getElementById('auditLogs').innerHTML;
+    const win = window.open('', '', 'width=800,height=600');
+    win.document.write(`<html><body style="direction:rtl; font-family:sans-serif;"><h2>سجل عمليات النظام</h2>${content}</body></html>`);
+    win.document.close();
+    win.print();
+}
+
+// 4. الشات المتكامل (مع الملفات، التعديل، الحذف)
+function toggleChat() {
+    const box = document.getElementById('chatBox');
+    box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+}
+
+function initChat() {
+    db.ref('chats/global').on('value', snap => {
+        const msgDiv = document.getElementById('chatMessages');
+        msgDiv.innerHTML = '';
+        const data = snap.val() || {};
+        Object.keys(data).forEach(id => {
+            const m = data[id];
+            if (m.to === 'all' || m.sender === currentUser || m.to === currentUser || users[currentUser].role === 'super') {
+                const div = document.createElement('div');
+                div.className = `msg ${m.sender === currentUser ? 'sent' : 'received'}`;
+                
+                let acts = m.sender === currentUser ? `<div class="msg-actions"><span onclick="editMsg('${id}','${m.text}')">✏️</span><span onclick="deleteMsg('${id}')">🗑️</span></div>` : '';
+                let tag = m.to !== 'all' ? `<span class="private-tag">🔒 خاص لـ ${m.to}</span><br>` : '';
+                let file = m.file ? (m.type.includes('image') ? `<img src="${m.file}" onclick="window.open(this.src)">` : `<br><a href="${m.file}" target="_blank">📁 ملف مرفق</a>`) : '';
+                
+                div.innerHTML = `${acts}${tag}<b>${m.sender}:</b><br>${m.text}${file}<div style="font-size:9px; opacity:0.6; margin-top:4px;">${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${m.edited ? '(معدلة)' : ''}</div>`;
+                msgDiv.appendChild(div);
             }
-        }
-
-        if (!hasData) {
-            Swal.fire('لا توجد بيانات', 'أنت لم تقم بتسجيل أي بيانات بعد لرفعها', 'info');
-            return;
-        }
-
-        await db.ref(`backups/${currentUser}`).set({
-            data: myArchive,
-            lastSync: firebase.database.ServerValue.TIMESTAMP
         });
-        
-        Swal.fire('نجاح', 'تم حفظ نسخة احتياطية سحابية لبياناتك بالكامل', 'success');
-    } catch (err) {
-        Swal.fire('خطأ', 'حدثت مشكلة أثناء الرفع: ' + err.message, 'error');
-    }
-}
-
-async function cloudRestore() {
-    const snap = await db.ref(`backups/${currentUser}`).once('value');
-    const cloud = snap.val();
-    
-    if (!cloud || !cloud.data) {
-        return Swal.fire('تنبيه', 'لا توجد نسخة سحابية محفوظة لك', 'warning');
-    }
-
-    const result = await Swal.fire({
-        title: 'استعادة سحابية؟',
-        text: "سيتم دمج البيانات السحابية مع الأرشيف الحالي. قد يؤدي هذا لتعديل بيانات مسجلة مسبقاً بنفس التاريخ.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'تأكيد الاستعادة',
-        cancelButtonText: 'إلغاء'
-    });
-
-    if (result.isConfirmed) {
-        for (let d in cloud.data) {
-            for (let s in cloud.data[d]) {
-                await db.ref(`archive/${d}/${s}/${currentUser}`).set(cloud.data[d][s][currentUser]);
-            }
-        }
-        Swal.fire('تمت الاستعادة', 'تمت مزامنة بياناتك بنجاح', 'success');
-        loadContent();
-    }
-}
-
-// --- نظام الملفات JSON ---
-function exportJSON() {
-    db.ref('archive').once('value', snap => {
-        let data = snap.val(); if(!data) return Swal.fire('تنبيه', 'لا توجد بيانات', 'info');
-        let filtered = {};
-        for(let d in data) for(let s in data[d]) if(data[d][s][currentUser]) {
-            if(!filtered[d]) filtered[d] = {};
-            if(!filtered[d][s]) filtered[d][s] = {};
-            filtered[d][s][currentUser] = data[d][s][currentUser];
-        }
-        const blob = new Blob([JSON.stringify(filtered, null, 2)], {type:'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Backup_${currentUser}_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
+        msgDiv.scrollTop = msgDiv.scrollHeight;
     });
 }
 
-function importJSON(input) {
-    const file = input.files[0]; if(!file) return;
+function sendChatMessage() {
+    const input = document.getElementById('chatMsgInput');
+    const to = document.getElementById('chatRecipient').value;
+    if(!input.value.trim()) return;
+    db.ref('chats/global').push({
+        sender: currentUser, to: to, text: input.value, timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+    input.value = '';
+}
+
+function sendChatFile(input) {
+    const file = input.files[0];
+    if(!file) return;
     const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const data = JSON.parse(e.target.result);
-            const res = await Swal.fire({ title: 'تأكيد الاستيراد', text: "هل تريد دمج هذا الملف مع الأرشيف؟", showCancelButton: true });
-            if(res.isConfirmed) {
-                for(let d in data) for(let s in data[d]) if(data[d][s][currentUser]) {
-                    db.ref(`archive/${d}/${s}/${currentUser}`).set(data[d][s][currentUser]);
-                }
-                Swal.fire('نجاح', 'تم استيراد الملف', 'success'); loadContent();
-            }
-        } catch(err) { Swal.fire('خطأ', 'تنسيق الملف غير صحيح', 'error'); }
+    reader.onload = (e) => {
+        db.ref('chats/global').push({
+            sender: currentUser, to: document.getElementById('chatRecipient').value,
+            text: `أرسل ملفاً: ${file.name}`, file: e.target.result, type: file.type, timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
     };
-    reader.readAsText(file);
+    reader.readAsDataURL(file);
 }
 
-// --- المحرك الأساسي ---
+function deleteMsg(id) { if(confirm('حذف الرسالة؟')) db.ref(`chats/global/${id}`).remove(); }
+async function editMsg(id, old) {
+    const { value: text } = await Swal.fire({ title: 'تعديل', input: 'text', inputValue: old, showCancelButton: true });
+    if(text) db.ref(`chats/global/${id}`).update({ text: text, edited: true });
+}
+
+// 5. وظائف الجدول والبيانات (دون تغيير)
 function liveUpdate() {
     let tp = 0, ts = 0;
     document.querySelectorAll('#tbody tr').forEach(row => {
         let l = parseFloat(row.cells[1].querySelector('input').value) || 0;
         let s = parseFloat(row.cells[2].querySelector('input').value) || 0;
-        let r = l * s; row.cells[3].innerText = r.toFixed(0);
+        let r = l * s;
+        row.cells[3].innerText = r.toFixed(0);
         tp += r; ts += s;
     });
     document.getElementById('sumTotal').innerText = tp.toFixed(0);
     document.getElementById('sumSizes').innerText = ts.toFixed(1);
-    clearTimeout(window.saveT); window.saveT = setTimeout(silentSave, 2000);
-}
-
-function silentSave() {
-    if (!activeUser || (currentUser !== activeUser && users[currentUser].role !== 'super')) return;
-    let data = [];
-    document.querySelectorAll('#tbody tr').forEach(row => {
-        let n = row.cells[0].querySelector('input').value;
-        if(n.trim() !== "") data.push({ 
-            name: n, 
-            l: row.cells[1].querySelector('input').value, 
-            s: row.cells[2].querySelector('input').value, 
-            line: row.cells[4].querySelector('input').value, 
-            note: row.cells[5].querySelector('input').value 
-        });
-    });
-    db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).set(data);
+    clearTimeout(window.saveT);
+    window.saveT = setTimeout(saveData, 1500);
 }
 
 function addRow(d = {name:'', l:0, s:0, line:1, note:''}) {
@@ -329,108 +322,98 @@ function addRow(d = {name:'', l:0, s:0, line:1, note:''}) {
         <td style="font-weight:bold;">0</td>
         <td><input type="text" value="${d.line}"></td>
         <td><input type="text" value="${d.note}"></td>
-        <td class="noPrint"><button onclick="this.closest('tr').remove(); liveUpdate();" style="color:red; background:none; border:none;">✖</button></td>`;
+        <td class="noPrint"><button onclick="this.closest('tr').remove(); liveUpdate();" style="color:red; background:none; border:none; font-size:18px;">✖</button></td>`;
     liveUpdate();
+}
+
+function saveData() {
+    if (currentUser !== activeUser && users[currentUser].role !== 'super') return;
+    let data = [];
+    document.querySelectorAll('#tbody tr').forEach(row => {
+        const name = row.cells[0].querySelector('input').value;
+        if(name.trim() !== "") {
+            data.push({ name, l: row.cells[1].querySelector('input').value, s: row.cells[2].querySelector('input').value, line: row.cells[4].querySelector('input').value, note: row.cells[5].querySelector('input').value });
+        }
+    });
+    db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).set(data);
+    localStorage.setItem(`offline_${activeDay}_${activeShift}_${activeUser}`, JSON.stringify(data));
 }
 
 function loadContent() {
     document.getElementById('tbody').innerHTML = '';
     db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).once('value', snap => {
-        (snap.val() || []).forEach(item => addRow(item));
-        liveUpdate();
+        let data = snap.val() || JSON.parse(localStorage.getItem(`offline_${activeDay}_${activeShift}_${activeUser}`) || '[]');
+        if(data && data.length > 0) data.forEach(item => addRow(item));
+        else addRow();
     });
 }
 
-// --- نظام المحادثة ---
-function listenForNotifications() {
-    db.ref('chats').on('value', snap => {
-        let unread = 0; const all = snap.val() || {};
-        if (users[currentUser].role === 'super') {
-            Object.keys(all).forEach(k => Object.keys(all[k]).forEach(mId => {
-                if (all[k][mId].sender !== currentUser && !all[k][mId].isRead) unread++;
-            }));
-        } else {
-            const my = all[currentUser] || {};
-            Object.keys(my).forEach(mId => { if (my[mId].sender !== currentUser && !my[mId].isRead) unread++; });
-        }
-        const b = document.getElementById('unreadBadge');
-        if (unread > 0) { b.innerText = unread; b.style.display = 'flex'; } else b.style.display = 'none';
-    });
-}
-
-function toggleChat() {
-    isChatOpen = !isChatOpen;
-    document.getElementById('chatWindow').style.display = isChatOpen ? 'flex' : 'none';
-    if(isChatOpen) loadChat();
-}
-
-function loadChat() {
-    const path = users[currentUser].role === 'super' ? chatRecipient : currentUser;
-    db.ref(`chats/${path}`).on('value', snap => {
-        const msgs = snap.val() || {};
-        document.getElementById('chatMessages').innerHTML = Object.keys(msgs).map(k => `
-            <div class="msg ${msgs[k].sender===currentUser?'msg-me':'msg-them'}">${msgs[k].content}</div>
-        `).join('');
-        document.getElementById('chatMessages').scrollTop = 99999;
-        // تحديث حالة الرسائل كمقروءة
-        Object.keys(msgs).forEach(k => {
-            if(msgs[k].sender !== currentUser) db.ref(`chats/${path}/${k}/isRead`).set(true);
-        });
-    });
-}
-
-function sendMsg() {
-    const i = document.getElementById('chatMsgInput');
-    const path = users[currentUser].role==='super' ? chatRecipient : currentUser;
-    if(!i.value.trim()) return;
-    db.ref(`chats/${path}`).push({ sender: currentUser, content: i.value, time: Date.now(), isRead: false });
-    i.value = '';
-}
-
-function setupChatUI() {
-    const area = document.getElementById('chatRecipientArea');
-    if (users[currentUser].role === 'super') {
-        let s = `<select id="chatRecipientSelect" onchange="chatRecipient=this.value; loadChat();" style="width:100%;"><option value="">اختر موظف...</option>`;
-        Object.keys(users).forEach(u => { if(u!==currentUser && users[u].role!=='super') s+=`<option value="${u}">${u}</option>`; });
-        area.innerHTML = s + `</select>`;
-    } else { area.innerHTML = `<span style="font-size:12px;">مراسلة الإدارة</span>`; chatRecipient = "admin"; }
-}
-
-function initApp() {
-    db.ref('users').on('value', snap => { 
-        users = snap.val() || users; 
-        const uSelect = document.getElementById('userSelect');
-        if (users[currentUser].role === 'super') {
-            uSelect.innerHTML = Object.keys(users).filter(u => users[u].role !== 'super').map(u => `<option value="${u}" ${u===activeUser?'selected':''}>${u}</option>`).join('');
-        } else { uSelect.innerHTML = `<option value="${currentUser}">${currentUser}</option>`; }
-        renderAdmin(); 
-    });
-    db.ref('.info/connected').on('value', snap => {
-        document.getElementById('connDot').style.background = snap.val() ? "#2ecc71" : "#e74c3c";
-        document.getElementById('connText').innerText = snap.val() ? "متصل" : "أوفلاين";
-    });
-}
-
-function switchContext() { 
-    activeUser = document.getElementById('userSelect').value; 
-    activeShift = document.getElementById('shiftSelect').value; 
+function switchContext() {
+    activeUser = document.getElementById('userSelect').value;
     activeDay = document.getElementById('daySelect').value;
-    loadContent(); 
+    activeShift = document.getElementById('shiftSelect').value;
+    loadContent();
 }
 
-function renderAdmin() {
-    if(users[currentUser].role !== 'super') return;
-    document.getElementById('adminPanel').style.display = 'block';
-    document.getElementById('usersList').innerHTML = Object.keys(users).filter(u => users[u].role !== 'super').map(u => `
-        <div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
-            <span>👤 ${u}</span><button onclick="if(confirm('حذف؟')) db.ref('users/'+'${u}').remove()" style="color:red; background:none; border:none;">حذف</button>
-        </div>`).join('');
+async function cloudBackup() {
+    Swal.fire({ title: 'جاري الحفظ...', didOpen: () => Swal.showLoading() });
+    const snap = await db.ref('archive').once('value');
+    await db.ref('public_backup/latest').set({ data: snap.val(), by: currentUser, at: firebase.database.ServerValue.TIMESTAMP });
+    Swal.fire('تم', 'تم الحفظ السحابي', 'success');
+    logSystem("نسخ احتياطي", "سحابي");
+}
+
+async function cloudRestore() {
+    const snap = await db.ref('public_backup/latest').once('value');
+    if(!snap.val()) return;
+    if(confirm('استعادة الأرشيف؟ سيتم استبدال البيانات الحالية')) {
+        await db.ref('archive').update(snap.val().data);
+        loadContent();
+        logSystem("استعادة بيانات", "من السحاب");
+    }
+}
+
+// 6. إدارة الموظفين والقوائم
+function renderAdminUsers() {
+    db.ref('users').on('value', snap => {
+        const all = snap.val() || {};
+        document.getElementById('usersList').innerHTML = Object.keys(all).filter(u => all[u].role !== 'super').map(u => `
+            <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
+                <span>👤 <b>${u}</b></span>
+                <button onclick="deleteWorker('${u}')" style="color:red; border:none; background:none; cursor:pointer;">✖ حذف</button>
+            </div>
+        `).join('');
+    });
 }
 
 function addNewWorker() {
-    let n = document.getElementById('newWorkerName').value.trim();
-    let p = document.getElementById('newWorkerPass').value.trim();
-    if(n && p) db.ref('users/' + n).set({ pass: btoa(p), role: "user" });
+    const n = document.getElementById('newWorkerName').value.trim();
+    const p = document.getElementById('newWorkerPass').value.trim();
+    if(n && p) {
+        db.ref(`users/${n}`).set({ pass: btoa(p), role: 'user' });
+        logSystem("إضافة موظف", n);
+    }
+}
+
+function deleteWorker(n) { if(confirm(`حذف ${n}؟`)) { db.ref(`users/${n}`).remove(); logSystem("حذف موظف", n); } }
+
+function updateUserSelector() {
+    const sel = document.getElementById('userSelect');
+    db.ref('users').once('value', snap => {
+        const u = snap.val() || {};
+        if(users[currentUser].role === 'super') {
+            sel.innerHTML = Object.keys(u).map(x => `<option value="${x}" ${x===currentUser?'selected':''}>${x}</option>`).join('');
+        } else sel.innerHTML = `<option value="${currentUser}">${currentUser}</option>`;
+    });
+}
+
+function updateRecipientList() {
+    db.ref('users').once('value', snap => {
+        const u = snap.val() || {};
+        const sel = document.getElementById('chatRecipient');
+        sel.innerHTML = '<option value="all">📢 إرسال للكل (عام)</option>';
+        Object.keys(u).forEach(x => { if(x !== currentUser) sel.innerHTML += `<option value="${x}">👤 خاص لـ: ${x}</option>`; });
+    });
 }
 </script>
 </body>
