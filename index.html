@@ -12,11 +12,10 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #f72585; --bg: #f0f2f5; --dark: #2d3436; --warning: #ff9f43; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
+        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #f72585; --bg: #f0f2f5; --dark: #2d3436; --warning: #ff9f43; --supervisor: #6c5ce7; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 60px; }
         .card { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); margin-bottom: 15px; }
         
-        /* سجل العمليات */
         .log-container { max-height: 200px; overflow-y: auto; background: #1e272e; color: #0be881; border-radius: 10px; padding: 10px; font-family: monospace; font-size: 11px; }
         .log-row { border-bottom: 1px solid #3d3d3d; padding: 4px 0; display: flex; justify-content: space-between; }
 
@@ -26,24 +25,31 @@
         input, select { width: 92%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 14px; }
         .btn { padding: 10px 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; margin: 5px; }
         
-        /* نظام الشات */
-        #chatBox { position: fixed; bottom: 20px; left: 20px; width: 340px; height: 500px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1000; overflow: hidden; border: 1px solid #ddd; }
+        #chatBox { position: fixed; bottom: 80px; left: 20px; width: 340px; height: 500px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1000; overflow: hidden; border: 1px solid #ddd; }
         #chatMessages { flex: 1; padding: 10px; overflow-y: auto; background: #f0f2f5; display: flex; flex-direction: column; gap: 10px; }
         .msg { max-width: 85%; padding: 10px; border-radius: 15px; font-size: 13px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .msg.sent { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 2px; }
         .msg.received { align-self: flex-start; background: white; color: #000; border-bottom-left-radius: 2px; }
-        .msg img { max-width: 100%; border-radius: 10px; margin-top: 5px; cursor: pointer; }
-        .private-tag { font-size: 9px; background: var(--danger); color: white; padding: 2px 5px; border-radius: 5px; }
-        .msg-actions { display: none; position: absolute; top: -25px; left: 0; background: #333; border-radius: 5px; padding: 2px 8px; gap: 10px; }
+        
+        .msg-actions { display: none; position: absolute; top: -15px; left: 5px; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 2px 5px; gap: 8px; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .msg:hover .msg-actions { display: flex; }
+        .msg-actions span { cursor: pointer; font-size: 12px; }
 
-        #chatToggle { position: fixed; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; display: none; justify-content: center; align-items: center; color: white; font-size: 24px; cursor: pointer; z-index: 999; }
+        .attachment-preview { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; border: 1px solid #eee; }
+        #fileInput { display: none; }
+
+        #chatToggle { position: fixed; bottom: 80px; left: 20px; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; display: none; justify-content: center; align-items: center; color: white; font-size: 24px; cursor: pointer; z-index: 999; }
+
+        .footer-rights { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--dark); color: white; text-align: center; padding: 10px 0; font-size: 12px; z-index: 998; }
+        .passkey-btn { background: #636e72; font-size: 11px; margin-top: 10px; opacity: 0.8; }
 
         @media print { 
-            .noPrint { display: none !important; } 
+            .noPrint, .footer-rights, #chatToggle, #chatBox { display: none !important; } 
+            #printableArea, #adminArea { display: block !important; }
             .card { box-shadow: none; border: 1px solid #000; margin: 0; padding: 10px; }
-            body { background: white; }
-            #printableArea { display: block !important; }
+            body { background: white; padding: 0; }
+            .log-container { max-height: none; background: white; color: black; border: 1px solid #ccc; }
+            .log-row { border-bottom: 1px solid #eee; color: black; }
         }
     </style>
 </head>
@@ -51,39 +57,41 @@
 
 <div id="loginBox" class="card" style="max-width:400px; margin:50px auto; text-align:center;">
     <h2 style="color:var(--primary);">🛡️ BrushManager Ultimate</h2>
-    <input id="username" type="text" placeholder="اسم المستخدم"><br><br>
-    <input id="pass" type="password" placeholder="كلمة المرور"><br><br>
-    <button onclick="login()" class="btn" style="background:var(--primary); width:100%">دخول آمن</button>
+    <p style="font-size: 12px; color: #666;">إدارة مصنع الفرش المتكاملة</p>
+    <div id="standardLogin">
+        <input id="username" type="text" placeholder="اسم المستخدم"><br><br>
+        <input id="pass" type="password" placeholder="كلمة المرور"><br><br>
+        <button onclick="login()" class="btn" style="background:var(--primary); width:100%">دخول آمن</button>
+        <button onclick="loginWithPasskey()" class="btn passkey-btn">🔑 الدخول السريع (Passkey)</button>
+    </div>
 </div>
 
 <div id="app" style="display:none;">
     <div class="card noPrint" style="display:flex; justify-content:space-between; align-items:center;">
-        <div>🟢 <span id="connText">متصل</span> | مرحباً: <b id="welcomeUser"></b></div>
+        <div>🟢 <span id="connText">متصل</span> | مرحباً: <b id="welcomeUser"></b> <span id="roleBadge"></span></div>
         <div>
-            <button onclick="printReport()" class="btn" style="background:var(--dark)">🖨️ طباعة PDF منظم</button>
+            <button onclick="printReport()" class="btn" style="background:var(--dark)">🖨️ طباعة</button>
             <button onclick="location.reload()" class="btn" style="background:var(--danger)">خروج</button>
         </div>
     </div>
 
-    <div id="adminArea" class="noPrint" style="display:none;">
-        <div class="card" style="border: 2px solid var(--warning);">
-            <h4 style="margin:0 0 10px 0; color:var(--dark);">📜 سجل نشاط النظام (Audit Log)</h4>
-            <div id="auditLogs" class="log-container"></div>
-            <div style="margin-top:10px;">
-                <button onclick="clearLogs()" class="btn" style="background:var(--danger); font-size:11px;">🗑️ مسح السجل</button>
-                <button onclick="printLogs()" class="btn" style="background:var(--primary); font-size:11px;">📋 طباعة السجل</button>
-            </div>
+    <div id="adminArea" class="card noPrint" style="display:none; border: 2px solid var(--warning);">
+        <h4 style="margin:0 0 10px 0; color:var(--dark);">📜 سجل نشاط النظام (Audit Log)</h4>
+        <div id="auditLogs" class="log-container"></div>
+        <div style="margin-top:10px;">
+            <button onclick="clearSystemLogs()" class="btn" style="background:var(--danger); font-size:11px;">🗑️ مسح السجل نهائياً</button>
+            <button onclick="window.print()" class="btn" style="background:var(--primary); font-size:11px;">📋 طباعة السجل</button>
         </div>
         
-        <div class="card">
-            <h4 style="color:var(--danger); margin:0 0 10px 0;">🛠️ إدارة الموظفين</h4>
-            <div style="display:flex; gap:5px; margin-bottom:15px;">
-                <input id="newWorkerName" type="text" placeholder="اسم الموظف">
-                <input id="newWorkerPass" type="text" placeholder="الباسورد">
-                <button onclick="addNewWorker()" class="btn" style="background:var(--success)">إضافة</button>
-            </div>
-            <div id="usersList"></div>
+        <hr style="margin:20px 0; opacity:0.2;">
+        
+        <h4 style="color:var(--danger); margin:0 0 10px 0;">🛠️ إدارة الموظفين</h4>
+        <div style="display:flex; gap:5px; margin-bottom:15px;">
+            <input id="newWorkerName" type="text" placeholder="اسم الموظف">
+            <input id="newWorkerPass" type="text" placeholder="الباسورد">
+            <button onclick="addNewWorker()" class="btn" style="background:var(--success)">إضافة</button>
         </div>
+        <div id="usersList"></div>
     </div>
 
     <div class="card noPrint" style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -99,10 +107,6 @@
     </div>
 
     <div id="printableArea" class="card">
-        <div class="onlyPrint" style="text-align:center; display:none;">
-            <h2>تقرير إنتاج مصنع الفرش</h2>
-            <p id="printInfo"></p>
-        </div>
         <div style="display:flex; justify-content:space-around; margin-bottom:15px; background:var(--bg); padding:10px; border-radius:10px;">
             <div>إجمالي القطع: <b id="sumTotal" style="color:var(--primary); font-size:18px;">0</b></div>
             <div>إجمالي المقاسات: <b id="sumSizes" style="color:var(--success); font-size:18px;">0</b></div>
@@ -119,29 +123,31 @@
 
     <div class="card noPrint" style="text-align:center;">
         <button onclick="cloudBackup()" class="btn" style="background:#0984e3;">📤 رفع أرشيف المصنع</button>
-        <button onclick="cloudRestore()" class="btn" style="background:#6c5ce7;">📥 استعادة الأرشيف</button>
+        <button onclick="cloudRestore()" id="restoreBtn" class="btn" style="background:#6c5ce7;">📥 استعادة الأرشيف</button>
     </div>
 </div>
 
 <div id="chatToggle" onclick="toggleChat()">💬</div>
 
 <div id="chatBox">
-    <div style="background:var(--primary); color:white; padding:12px; font-weight:bold;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>💬 المراسلة الخاصة</span>
-            <span onclick="toggleChat()" style="cursor:pointer;">✖</span>
-        </div>
-        <select id="chatRecipient" style="width:100%; margin-top:5px; height:30px; font-size:11px;"></select>
+    <div style="background:var(--primary); color:white; padding:12px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+        <span>💬 المراسلة</span>
+        <button onclick="askNotificationPermission()" style="background:rgba(255,255,255,0.2); border:none; border-radius:5px; color:white; font-size:10px; cursor:pointer; padding:2px 5px;">🔔 تنبيهات</button>
+    </div>
+    <div style="padding:5px; background:#f8f9fa; border-bottom:1px solid #eee;">
+        <select id="chatRecipient" style="width:100%; height:30px; font-size:11px;"></select>
     </div>
     <div id="chatMessages"></div>
-    <div style="padding:10px; border-top:1px solid #eee;">
-        <div style="display:flex; gap:5px; align-items:center;">
-            <button onclick="document.getElementById('chatFile').click()" style="background:none; border:none; font-size:18px; cursor:pointer;">📎</button>
-            <input type="file" id="chatFile" style="display:none" onchange="sendChatFile(this)">
-            <input type="text" id="chatMsgInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendChatMessage()" style="flex:1;">
-            <button onclick="sendChatMessage()" style="background:var(--primary); color:white; border:none; border-radius:50%; width:35px; height:35px; cursor:pointer;">✈</button>
-        </div>
+    <div style="padding:10px; border-top:1px solid #eee; display:flex; align-items:center; gap:5px;">
+        <button onclick="document.getElementById('fileInput').click()" style="background:none; border:none; font-size:18px; cursor:pointer;">📎</button>
+        <input type="file" id="fileInput" onchange="handleFileUpload(this)" style="display:none;">
+        <input type="text" id="chatMsgInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendChatMessage()" style="flex:1;">
+        <button onclick="sendChatMessage()" style="background:var(--primary); color:white; border:none; border-radius:50%; width:35px; height:35px;">✈</button>
     </div>
+</div>
+
+<div class="footer-rights">
+    جميع حقوق المالكية محفوظة (محمود بدير) © 2026 - BrushManager Pro V3.0.0
 </div>
 
 <script>
@@ -157,8 +163,12 @@ const db = firebase.database();
 
 let currentUser, activeUser, activeDay, activeShift;
 let users = {};
+let lastMessageCount = 0;
+const notifSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
 
-// 1. الدخول والبدء
+const THE_PASSKEY = "2026"; 
+
+// --- وظائف الدخول ---
 function login() {
     let u = document.getElementById('username').value.trim();
     let p = document.getElementById('pass').value;
@@ -167,9 +177,27 @@ function login() {
         if (users[u] && users[u].pass === btoa(p)) {
             currentUser = activeUser = u;
             startApp();
-            logSystem("تسجيل دخول", "موفق");
-        } else Swal.fire('فشل', 'بيانات خاطئة', 'error');
+            logSystem("دخول", "تقليدي");
+        } else Swal.fire('خطأ', 'بيانات غير صحيحة', 'error');
     });
+}
+
+async function loginWithPasskey() {
+    const { value: key } = await Swal.fire({
+        title: 'أدخل Passkey للمشرف',
+        input: 'password',
+        inputPlaceholder: 'رمز الوصول السريع',
+        showCancelButton: true
+    });
+    if (key === THE_PASSKEY) {
+        currentUser = activeUser = "mahmoudbidear";
+        db.ref('users/mahmoudbidear').once('value', snap => {
+            if(!snap.val()) db.ref('users/mahmoudbidear').set({ pass: btoa("1"), role: "supervisor" });
+            users["mahmoudbidear"] = { role: "supervisor" };
+            startApp();
+            logSystem("دخول سريع", "Passkey");
+        });
+    } else if (key) Swal.fire('خطأ', 'رمز غير صحيح', 'error');
 }
 
 function startApp() {
@@ -178,126 +206,53 @@ function startApp() {
     document.getElementById('chatToggle').style.display = 'flex';
     document.getElementById('welcomeUser').innerText = currentUser;
     
-    activeDay = new Date().toISOString().split('T')[0];
-    document.getElementById('daySelect').value = activeDay;
-    activeShift = "وردية_1";
-    
-    if(users[currentUser].role === 'super') {
+    const role = users[currentUser]?.role || 'user';
+    if(role === 'super' || role === 'supervisor') {
         document.getElementById('adminArea').style.display = 'block';
+        document.getElementById('roleBadge').innerHTML = `<small style="background:var(--supervisor); color:white; padding:2px 8px; border-radius:10px;">${role==='super'?'مدير':'مشرف'}</small>`;
         listenToAudit();
         renderAdminUsers();
     }
     
+    activeDay = new Date().toISOString().split('T')[0];
+    document.getElementById('daySelect').value = activeDay;
+    activeShift = "وردية_1";
     updateUserSelector();
     loadContent();
     initChat();
     updateRecipientList();
 }
 
-// 2. نظام السجل (Audit Log)
+// --- إدارة البيانات والجدول ---
 function logSystem(action, details) {
-    db.ref('system_audit').push({
-        user: currentUser,
-        action: action,
-        details: details,
-        time: new Date().toLocaleString('ar-EG'),
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
+    db.ref('system_audit').push({ user: currentUser, action: action, details: details, time: new Date().toLocaleString('ar-EG') });
 }
 
 function listenToAudit() {
     db.ref('system_audit').limitToLast(50).on('value', snap => {
         const logs = snap.val() || {};
-        document.getElementById('auditLogs').innerHTML = Object.values(logs).reverse().map(l => `
-            <div class="log-row">
-                <span>[${l.time}] <b>${l.user}</b></span>
-                <span>${l.action}: ${l.details}</span>
-            </div>
-        `).join('');
+        document.getElementById('auditLogs').innerHTML = Object.values(logs).reverse().map(l => `<div class="log-row"><span>[${l.time}] <b>${l.user}</b></span><span>${l.action}: ${l.details}</span></div>`).join('');
     });
 }
 
-function clearLogs() {
-    if(confirm('سيتم حذف سجل النشاط بالكامل، هل أنت متأكد؟')) {
-        db.ref('system_audit').remove();
-        logSystem("مسح السجل", "بواسطة الأدمن");
-    }
-}
-
-// 3. الطباعة
-function printReport() {
-    document.getElementById('printInfo').innerText = `التاريخ: ${activeDay} | الوردية: ${activeShift} | الموظف: ${activeUser}`;
-    window.print();
-    logSystem("طباعة", `تقرير ${activeDay}`);
-}
-
-function printLogs() {
-    const content = document.getElementById('auditLogs').innerHTML;
-    const win = window.open('', '', 'width=800,height=600');
-    win.document.write(`<html><body style="direction:rtl; font-family:sans-serif;"><h2>سجل عمليات النظام</h2>${content}</body></html>`);
-    win.document.close();
-    win.print();
-}
-
-// 4. الشات المتكامل (مع الملفات، التعديل، الحذف)
-function toggleChat() {
-    const box = document.getElementById('chatBox');
-    box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-}
-
-function initChat() {
-    db.ref('chats/global').on('value', snap => {
-        const msgDiv = document.getElementById('chatMessages');
-        msgDiv.innerHTML = '';
-        const data = snap.val() || {};
-        Object.keys(data).forEach(id => {
-            const m = data[id];
-            if (m.to === 'all' || m.sender === currentUser || m.to === currentUser || users[currentUser].role === 'super') {
-                const div = document.createElement('div');
-                div.className = `msg ${m.sender === currentUser ? 'sent' : 'received'}`;
-                
-                let acts = m.sender === currentUser ? `<div class="msg-actions"><span onclick="editMsg('${id}','${m.text}')">✏️</span><span onclick="deleteMsg('${id}')">🗑️</span></div>` : '';
-                let tag = m.to !== 'all' ? `<span class="private-tag">🔒 خاص لـ ${m.to}</span><br>` : '';
-                let file = m.file ? (m.type.includes('image') ? `<img src="${m.file}" onclick="window.open(this.src)">` : `<br><a href="${m.file}" target="_blank">📁 ملف مرفق</a>`) : '';
-                
-                div.innerHTML = `${acts}${tag}<b>${m.sender}:</b><br>${m.text}${file}<div style="font-size:9px; opacity:0.6; margin-top:4px;">${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${m.edited ? '(معدلة)' : ''}</div>`;
-                msgDiv.appendChild(div);
-            }
-        });
-        msgDiv.scrollTop = msgDiv.scrollHeight;
+// ميزة مسح السجل الجديدة
+function clearSystemLogs() {
+    Swal.fire({
+        title: 'هل أنت متأكد؟',
+        text: "سيتم مسح سجل النشاط بالكامل ولا يمكن التراجع!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f72585',
+        confirmButtonText: 'نعم، امسح الكل'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            db.ref('system_audit').remove();
+            logSystem("مسح السجل", "قام المسؤول بمسح سجلات النظام");
+            Swal.fire('تم المسح', 'تم تنظيف السجل بنجاح', 'success');
+        }
     });
 }
 
-function sendChatMessage() {
-    const input = document.getElementById('chatMsgInput');
-    const to = document.getElementById('chatRecipient').value;
-    if(!input.value.trim()) return;
-    db.ref('chats/global').push({
-        sender: currentUser, to: to, text: input.value, timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
-    input.value = '';
-}
-
-function sendChatFile(input) {
-    const file = input.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        db.ref('chats/global').push({
-            sender: currentUser, to: document.getElementById('chatRecipient').value,
-            text: `أرسل ملفاً: ${file.name}`, file: e.target.result, type: file.type, timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function deleteMsg(id) { if(confirm('حذف الرسالة؟')) db.ref(`chats/global/${id}`).remove(); }
-async function editMsg(id, old) {
-    const { value: text } = await Swal.fire({ title: 'تعديل', input: 'text', inputValue: old, showCancelButton: true });
-    if(text) db.ref(`chats/global/${id}`).update({ text: text, edited: true });
-}
-
-// 5. وظائف الجدول والبيانات (دون تغيير)
 function liveUpdate() {
     let tp = 0, ts = 0;
     document.querySelectorAll('#tbody tr').forEach(row => {
@@ -315,36 +270,24 @@ function liveUpdate() {
 
 function addRow(d = {name:'', l:0, s:0, line:1, note:''}) {
     const r = document.getElementById('tbody').insertRow();
-    r.innerHTML = `
-        <td><input type="text" value="${d.name}"></td>
-        <td><input type="number" value="${d.l}"></td>
-        <td><input type="number" value="${d.s}"></td>
-        <td style="font-weight:bold;">0</td>
-        <td><input type="text" value="${d.line}"></td>
-        <td><input type="text" value="${d.note}"></td>
-        <td class="noPrint"><button onclick="this.closest('tr').remove(); liveUpdate();" style="color:red; background:none; border:none; font-size:18px;">✖</button></td>`;
+    r.innerHTML = `<td><input type="text" value="${d.name}"></td><td><input type="number" value="${d.l}"></td><td><input type="number" value="${d.s}"></td><td style="font-weight:bold;">0</td><td><input type="text" value="${d.line}"></td><td><input type="text" value="${d.note}"></td><td class="noPrint"><button onclick="this.closest('tr').remove(); liveUpdate();" style="color:red; background:none; border:none;">✖</button></td>`;
     liveUpdate();
 }
 
 function saveData() {
-    if (currentUser !== activeUser && users[currentUser].role !== 'super') return;
     let data = [];
     document.querySelectorAll('#tbody tr').forEach(row => {
         const name = row.cells[0].querySelector('input').value;
-        if(name.trim() !== "") {
-            data.push({ name, l: row.cells[1].querySelector('input').value, s: row.cells[2].querySelector('input').value, line: row.cells[4].querySelector('input').value, note: row.cells[5].querySelector('input').value });
-        }
+        if(name.trim() !== "") data.push({ name, l: row.cells[1].querySelector('input').value, s: row.cells[2].querySelector('input').value, line: row.cells[4].querySelector('input').value, note: row.cells[5].querySelector('input').value });
     });
     db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).set(data);
-    localStorage.setItem(`offline_${activeDay}_${activeShift}_${activeUser}`, JSON.stringify(data));
 }
 
 function loadContent() {
     document.getElementById('tbody').innerHTML = '';
     db.ref(`archive/${activeDay}/${activeShift}/${activeUser}`).once('value', snap => {
-        let data = snap.val() || JSON.parse(localStorage.getItem(`offline_${activeDay}_${activeShift}_${activeUser}`) || '[]');
-        if(data && data.length > 0) data.forEach(item => addRow(item));
-        else addRow();
+        let data = snap.val() || [];
+        if(data.length > 0) data.forEach(item => addRow(item)); else addRow();
     });
 }
 
@@ -355,34 +298,81 @@ function switchContext() {
     loadContent();
 }
 
-async function cloudBackup() {
-    Swal.fire({ title: 'جاري الحفظ...', didOpen: () => Swal.showLoading() });
-    const snap = await db.ref('archive').once('value');
-    await db.ref('public_backup/latest').set({ data: snap.val(), by: currentUser, at: firebase.database.ServerValue.TIMESTAMP });
-    Swal.fire('تم', 'تم الحفظ السحابي', 'success');
-    logSystem("نسخ احتياطي", "سحابي");
+// --- نظام الشات ---
+function askNotificationPermission() { Notification.requestPermission(); }
+
+function initChat() {
+    db.ref('chats/global').limitToLast(30).on('value', snap => {
+        const msgDiv = document.getElementById('chatMessages');
+        const data = snap.val() || {};
+        const msgIds = Object.keys(data);
+        if(msgIds.length > lastMessageCount && lastMessageCount !== 0) {
+            const lastMsg = data[msgIds[msgIds.length-1]];
+            if(lastMsg.sender !== currentUser && (lastMsg.to === 'all' || lastMsg.to === currentUser)) {
+                notifSound.play().catch(e => {});
+                if(Notification.permission === "granted") new Notification(`رسالة من ${lastMsg.sender}`, { body: lastMsg.text || "أرسل ملفاً" });
+            }
+        }
+        lastMessageCount = msgIds.length;
+        msgDiv.innerHTML = '';
+        msgIds.forEach(id => {
+            const m = data[id];
+            if(m.to === 'all' || m.sender === currentUser || m.to === currentUser) {
+                const isMine = m.sender === currentUser;
+                const div = document.createElement('div');
+                div.className = `msg ${isMine ? 'sent' : 'received'}`;
+                let fileHTML = '';
+                if(m.file) {
+                    if(m.fileType?.includes('image')) fileHTML = `<img src="${m.file}" class="attachment-preview" onclick="window.open(this.src)">`;
+                    else fileHTML = `<br><a href="${m.file}" download="file" style="color:inherit; font-size:11px;">📂 ملف مرفق</a>`;
+                }
+                const actions = isMine ? `<div class="msg-actions"><span onclick="editMsg('${id}', '${m.text}')">✏️</span><span onclick="deleteMsg('${id}')">🗑️</span></div>` : '';
+                div.innerHTML = `${actions}<b>${m.sender}:</b><br>${m.text || ''}${fileHTML}`;
+                msgDiv.appendChild(div);
+            }
+        });
+        msgDiv.scrollTop = msgDiv.scrollHeight;
+    });
 }
 
-async function cloudRestore() {
-    const snap = await db.ref('public_backup/latest').once('value');
-    if(!snap.val()) return;
-    if(confirm('استعادة الأرشيف؟ سيتم استبدال البيانات الحالية')) {
-        await db.ref('archive').update(snap.val().data);
-        loadContent();
-        logSystem("استعادة بيانات", "من السحاب");
+async function sendChatMessage(fileData = null, fileType = null) {
+    const i = document.getElementById('chatMsgInput');
+    const msgText = i.value.trim();
+    const recipient = document.getElementById('chatRecipient').value;
+    if(!msgText && !fileData) return;
+    const payload = { sender: currentUser, to: recipient, text: msgText, time: firebase.database.ServerValue.TIMESTAMP };
+    if(fileData) { payload.file = fileData; payload.fileType = fileType; }
+    await db.ref('chats/global').push(payload);
+    i.value = ''; document.getElementById('fileInput').value = '';
+}
+
+function handleFileUpload(input) {
+    const file = input.files[0];
+    if (file) {
+        if (file.size > 800000) { Swal.fire('خطأ', 'الملف كبير (الأقصى 800KB)', 'error'); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => sendChatMessage(e.target.result, file.type);
+        reader.readAsDataURL(file);
     }
 }
 
-// 6. إدارة الموظفين والقوائم
+async function editMsg(id, old) {
+    const { value: text } = await Swal.fire({ title: 'تعديل', input: 'text', inputValue: old, showCancelButton: true });
+    if (text) db.ref(`chats/global/${id}`).update({ text: text + " (معدلة)" });
+}
+
+function deleteMsg(id) { if(confirm("حذف الرسالة؟")) db.ref(`chats/global/${id}`).remove(); }
+
+function toggleChat() { 
+    const b = document.getElementById('chatBox'); 
+    b.style.display = b.style.display==='flex'?'none':'flex'; 
+}
+
+// --- إدارة الموظفين ---
 function renderAdminUsers() {
     db.ref('users').on('value', snap => {
         const all = snap.val() || {};
-        document.getElementById('usersList').innerHTML = Object.keys(all).filter(u => all[u].role !== 'super').map(u => `
-            <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
-                <span>👤 <b>${u}</b></span>
-                <button onclick="deleteWorker('${u}')" style="color:red; border:none; background:none; cursor:pointer;">✖ حذف</button>
-            </div>
-        `).join('');
+        document.getElementById('usersList').innerHTML = Object.keys(all).filter(u => all[u].role === 'user').map(u => `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;"><span>👤 <b>${u}</b></span><button onclick="deleteWorker('${u}')" style="color:red; border:none; background:none; cursor:pointer;">✖ حذف</button></div>`).join('');
     });
 }
 
@@ -391,17 +381,22 @@ function addNewWorker() {
     const p = document.getElementById('newWorkerPass').value.trim();
     if(n && p) {
         db.ref(`users/${n}`).set({ pass: btoa(p), role: 'user' });
-        logSystem("إضافة موظف", n);
+        logSystem("إضافة موظف", `تمت إضافة الموظف ${n}`);
     }
 }
 
-function deleteWorker(n) { if(confirm(`حذف ${n}؟`)) { db.ref(`users/${n}`).remove(); logSystem("حذف موظف", n); } }
+function deleteWorker(n) { 
+    if(confirm(`حذف ${n}؟`)) {
+        db.ref(`users/${n}`).remove();
+        logSystem("حذف موظف", `تم حذف الموظف ${n}`);
+    }
+}
 
 function updateUserSelector() {
     const sel = document.getElementById('userSelect');
     db.ref('users').once('value', snap => {
         const u = snap.val() || {};
-        if(users[currentUser].role === 'super') {
+        if(users[currentUser].role === 'super' || users[currentUser].role === 'supervisor') {
             sel.innerHTML = Object.keys(u).map(x => `<option value="${x}" ${x===currentUser?'selected':''}>${x}</option>`).join('');
         } else sel.innerHTML = `<option value="${currentUser}">${currentUser}</option>`;
     });
@@ -411,10 +406,31 @@ function updateRecipientList() {
     db.ref('users').once('value', snap => {
         const u = snap.val() || {};
         const sel = document.getElementById('chatRecipient');
-        sel.innerHTML = '<option value="all">📢 إرسال للكل (عام)</option>';
-        Object.keys(u).forEach(x => { if(x !== currentUser) sel.innerHTML += `<option value="${x}">👤 خاص لـ: ${x}</option>`; });
+        sel.innerHTML = '<option value="all">📢 للكل</option>';
+        Object.keys(u).forEach(x => { if(x !== currentUser) sel.innerHTML += `<option value="${x}">👤 ${x}</option>`; });
     });
+}
+
+function printReport() { window.print(); }
+
+async function cloudBackup() {
+    const snap = await db.ref('archive').once('value');
+    await db.ref('public_backup/latest').set({ data: snap.val(), at: firebase.database.ServerValue.TIMESTAMP });
+    logSystem("نسخ احتياطي", "تم عمل نسخة احتياطية سحابية");
+    Swal.fire('تم', 'حفظ سحابي بنجاح', 'success');
+}
+
+async function cloudRestore() {
+    if(users[currentUser].role !== 'super' && users[currentUser].role !== 'supervisor') return;
+    const snap = await db.ref('public_backup/latest').once('value');
+    if(snap.val()) { 
+        await db.ref('archive').set(snap.val().data); 
+        logSystem("استعادة بيانات", "تم استعادة الأرشيف من السحابة");
+        loadContent(); 
+        Swal.fire('تم', 'استعادة البيانات بنجاح', 'success'); 
+    }
 }
 </script>
 </body>
 </html>
+
